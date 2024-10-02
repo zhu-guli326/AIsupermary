@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超级玛丽AI图像生成器</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Press Start 2P', cursive;
+            background-color: #5C94FC;
+            color: #FFFFFF;
+            overflow: hidden;
+        }
+
+        .game-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-background {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 200px;
+            background: 
+                linear-gradient(#5C94FC 0%, #5C94FC 60%, #00A800 60%, #00A800 100%) 0 0 / 50% 100% repeat-x,
+                radial-gradient(circle at 25% 100%, #00A800 10px, transparent 10px) 0 100% / 50px 20px repeat-x;
+            animation: scrollBackground 20s linear infinite;
+        }
+
+        .ground-decorations {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 80px;
+            animation: scrollBackground 20s linear infinite;
+        }
+
+        .mushroom, .character {
+            position: absolute;
+            bottom: 0;
+            font-size: 24px;
+        }
+
+        .mushroom {
+            animation: bounce 1s infinite alternate;
+        }
+
+        .character {
+            animation: run 2s infinite steps(2);
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+
+        @keyframes run {
+            from { transform: translateX(0); }
+            to { transform: translateX(20px); }
+        }
+
+        @keyframes scrollBackground {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+
+        .game-container {
+            background-color: rgba(0, 0, 0, 0.7);
+            border: 4px solid #FFA500;
+            border-radius: 10px;
+            padding: 20px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh; /* 设置最大高度为视口高度的80% */
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
+            overflow-y: auto; /* 添加垂直滚动条 */
+            scrollbar-width: thin; /* 为Firefox设置滚动条宽度 */
+            scrollbar-color: #FFA500 rgba(0, 0, 0, 0.3); /* 为Firefox设置滚动条颜色 */
+        }
+
+        /* 为Webkit浏览器（如Chrome、Safari）自定义滚动条样式 */
+        .game-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .game-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        .game-container::-webkit-scrollbar-thumb {
+            background-color: #FFA500;
+            border-radius: 4px;
+        }
+
+        .title {
+            font-size: 2rem;
+            color: #FFA500;
+            text-shadow: 2px 2px 4px #000000;
+            margin-bottom: 20px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .title::before, .title::after {
+            content: '';
+            position: absolute;
+            top: -20px;
+            width: 20px;
+            height: 20px;
+            background-color: #FF0000;
+            border-radius: 50% 50% 50% 0;
+            animation: bounce 0.5s alternate infinite;
+        }
+
+        .title::before { left: -30px; transform: rotate(-45deg); }
+        .title::after { right: -30px; transform: rotate(45deg); }
+
+        @keyframes bounce {
+            from { transform: translateY(0) rotate(-45deg); }
+            to { transform: translateY(-10px) rotate(-45deg); }
+        }
+
+        input[type="text"] {
+            width: calc(100% - 20px);
+            padding: 10px;
+            font-family: 'Press Start 2P', cursive;
+            border: none;
+            background-color: #FFF;
+            color: #000;
+            outline: none;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .generate-button {
+            background-color: #E52521;
+            color: #FFF;
+            border: none;
+            padding: 10px 20px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .generate-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px #FFA500;
+        }
+
+        .generate-button::after {
+            content: '★';
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            font-size: 24px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .cloud {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            padding: 10px 15px;
+            color: #000000;
+            cursor: pointer;
+            transition: transform 0.3s, opacity 0.3s;
+            box-shadow: 
+                20px 20px 0 -5px rgba(255, 255, 255, 0.8),
+                40px 0 0 -5px rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            font-weight: bold;
+            white-space: nowrap;
+            animation: float-horizontal linear infinite;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .cloud:hover {
+            transform: scale(1.1);
+            background-color: rgba(255, 255, 255, 1);
+        }
+
+        .cloud.clicked {
+            animation: cloudClick 0.5s forwards;
+        }
+
+        @keyframes cloudClick {
+            0% { transform: scale(1.1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        @keyframes float-horizontal {
+            from { transform: translateX(-100%); }
+            to { transform: translateX(100vw); }
+        }
+
+        #result {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        #generatedImage {
+            max-width: 100%;
+            border: 4px solid #FFA500;
+            border-radius: 10px;
+            display: none;
+            box-shadow: 0 0 20px rgba(255, 165, 0, 0.5);
+            transition: box-shadow 0.3s ease;
+        }
+
+        #generatedImage.glow {
+            box-shadow: 0 0 30px #FFA500, 0 0 60px #FFA500;
+        }
+
+        .loading {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 60px;
+            margin-top: 20px;
+        }
+
+        .mario-progress {
+            position: absolute;
+            left: 0;
+            bottom: 0;
+            width: 30px;
+            height: 30px;
+            background: url('D:/AI/cosmic - 修改/mario.png') no-repeat center/contain;
+            transition: left 0.5s linear;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #663300;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress {
+            width: 0;
+            height: 100%;
+            background-color: #FFA500;
+            transition: width 0.5s linear;
+        }
+
+        .progress::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(0,0,0,0.1) 10px,
+                rgba(0,0,0,0.1) 20px
+            );
+        }
+
+        .game-decoration {
+            position: absolute;
+            font-size: 24px;
+            animation: float 3s ease-in-out infinite;
+            z-index: 5;
+        }
+
+        .coin { top: 10%; left: 10%; }
+        .mushroom { top: 10%; right: 10%; }
+        .star { bottom: 10%; left: 10%; }
+        .flower { bottom: 10%; right: 10%; }
+
+        .coin::after { content: '●'; color: #FFD700; }
+        .mushroom::after { content: '◆'; color: #FF0000; }
+        .star::after { content: '★'; color: #FFD700; }
+        .flower::after { content: '✿'; color: #FF69B4; }
+
+        .input-container {
+            position: relative;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            width: calc(100% - 80px); /* 稍微减少宽度，为按钮留出空间 */
+            padding: 10px;
+            font-family: 'Press Start 2P', cursive;
+            border: none;
+            background-color: #FFF;
+            color: #000;
+            outline: none;
+            border-radius: 20px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .clear-button {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #FFA500;
+            color: #000;
+            border: none;
+            border-radius: 20px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: block; /* 确保按钮显示 */
+        }
+
+        .clear-button:hover {
+            background-color: #FF8C00;
+        }
+
+        .button-container {
+            margin-top: 10px;
+        }
+
+        .generate-button {
+            width: 100%;
+            padding: 10px 20px;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 20px;
+            border: none;
+            background-color: #E52521;
+            color: #FFF;
+        }
+
+        .generate-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px #FFA500;
+        }
+
+        /* 添加音乐控制图标的样式 */
+        .music-control {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1001;
+            font-size: 24px;
+            cursor: pointer;
+            color: #FFA500;
+            background: none;
+            border: none;
+            padding: 5px;
+            transition: transform 0.3s ease;
+        }
+
+        .music-control:hover {
+            transform: scale(1.1);
+        }
+
+        .game-container {
+            position: relative; /* 确保子元素可以相对于它定位 */
+        }
+
+        /* 添加自然场景样式 */
+        .nature-scene {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100vw;
+            height: 200px;
+            z-index: -1;
+        }
+
+        .grass-field {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(#7cfc00, #32cd32);
+        }
+
+        .blade {
+            position: absolute;
+            width: 2px;
+            height: 15px;
+            background-color: #228b22;
+            animation: sway 2s ease-in-out infinite;
+        }
+
+        @keyframes sway {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(5deg); }
+        }
+
+        .flower {
+            position: absolute;
+            bottom: 150px;
+            left: 50px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: radial-gradient(#ff69b4, #ff1493);
+            animation: bloom 4s ease-in-out infinite;
+        }
+
+        @keyframes bloom {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .butterfly {
+            position: absolute;
+            top: 100px;
+            left: 100px;
+            width: 50px;
+            height: 50px;
+            background: url('butterfly.png') no-repeat center center/cover;
+            animation: fly 5s linear infinite;
+        }
+
+        @keyframes fly {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(100px, 50px); }
+        }
+
+        /* 添加新的 Mario 进度条和自然场景样式 */
+        .progressContainer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 9999; /* 增加 z-index 确保它在最上层 */
+            height: 60px;
+            background-color: #87CEEB;
+            border-top: 2px solid #000;
+            overflow: visible; /* 改为 visible 以便 Mario 可以显示在外部 */
+            width: 100vw;
+        }
+        .progressBar {
+            height: 100%;
+            width: 0%; /* 初始进度为0 */
+            background-color: #90EE90;
+            transition: width 0.3s ease-in-out;
+            position: relative;
+            overflow: visible; /* 改为 visible 以便 Mario 可以显示在外部 */
+        }
+        .mario {
+            position: absolute;
+            left: 0; /* 改为左侧对齐 */
+            bottom: 0;
+            width: 32px;
+            height: 32px;
+            background: url('/mario.png') no-repeat; /* 确保路径正确 */
+            background-size: 64px 32px;
+            animation: run 0.3s steps(2) infinite;
+        }
+        @keyframes run {
+            0% { background-position: 0 0; }
+            100% { background-position: -64px 0; }
+        }
+        .mario-jump {
+            animation: jump 0.5s ease-out;
+        }
+        @keyframes jump {
+            0%, 100% { bottom: 0; }
+            50% { bottom: 20px; }
+        }
+
+        .background-scene {
+            position: fixed;
+            bottom: 60px; /* 确保在 Mario 进度条上方 */
+            left: 0;
+            width: 100%;
+            height: 100px;
+            z-index: 9998; /* 确保在 Mario 进度条下方 */
+            overflow: hidden;
+        }
+
+        .walking-mario {
+            position: absolute;
+            bottom: 0;
+            left: -50px;
+            width: 32px;
+            height: 32px;
+            background: url('/mario-walk.png') no-repeat;
+            background-size: 96px 32px;
+            animation: walk 10s linear infinite, moveRight 30s linear infinite;
+        }
+
+        @keyframes walk {
+            0% { background-position: 0 0; }
+            100% { background-position: -96px 0; }
+        }
+
+        @keyframes moveRight {
+            0% { left: -50px; }
+            100% { left: 100%; }
+        }
+
+        .jumping-luigi {
+            position: absolute;
+            bottom: 0;
+            right: 50px;
+            width: 32px;
+            height: 32px;
+            background: url('/luigi-jump.png') no-repeat;
+            background-size: cover;
+            animation: jump 2s ease-in-out infinite;
+        }
+
+        @keyframes jump {
+            0%, 100% { bottom: 0; }
+            50% { bottom: 50px; }
+        }
+
+        .coin {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: url('/coin.png') no-repeat;
+            background-size: cover;
+            animation: spin 1s linear infinite, float 3s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        /* 为每个金币生成不同的位置和动画延迟 */
+        .coin:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .coin:nth-child(2) { left: 30%; animation-delay: 0.5s; }
+        .coin:nth-child(3) { left: 50%; animation-delay: 1s; }
+        .coin:nth-child(4) { left: 70%; animation-delay: 1.5s; }
+        .coin:nth-child(5) { left: 90%; animation-delay: 2s; }
+    </style>
+</head>
+<body>
+    <audio id="backgroundMusic" loop>
+        <source src="D:/AI/cosmic - ok - xiugai/コナミ矩形波倶楽部 - American Patrol.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- 添加 Mario 进度条和自然场景 -->
+    <div class="progressContainer">
+        <div class="progressBar">
+            <div class="natureScene">
+                <div class="grassField">
+                    <!-- 生成更多草叶 -->
+                    <script>
+                        const bladeCount = Math.floor(window.innerWidth / 20); // 根据屏幕宽度动态计算草叶数量
+                        for (let i = 0; i < bladeCount; i++) {
+                            document.write(`<div class="blade" style="left: ${(i / bladeCount) * 100}%;"></div>`);
+                        }
+                    </script>
+                </div>
+                <div class="flower">
+                    <div class="flowerCenter"></div>
+                    <!-- 生成5个花瓣 -->
+                    <script>
+                        for (let i = 0; i < 5; i++) {
+                            document.write(`<div class="petal" style="transform: rotate(${i * 72}deg);"></div>`);
+                        }
+                    </script>
+                </div>
+                <div class="butterfly">
+                    <div class="wing leftWing"></div>
+                    <div class="wing rightWing"></div>
+                </div>
+            </div>
+            <div class="mario"></div>
+        </div>
+    </div>
+
+    <div class="game-wrapper">
+        <div class="game-background"></div>
+        <div class="ground-decorations">
+            <span class="mushroom" style="left: 10%;">🍄</span>
+            <span class="mushroom" style="left: 30%;">🍄</span>
+            <span class="mushroom" style="left: 50%;">🍄</span>
+            <span class="mushroom" style="left: 70%;">🍄</span>
+            <span class="character" style="left: 20%;">🏃</span>
+            <span class="character" style="left: 60%;">🏃</span>
+        </div>
+        <div id="cloudContainer"></div>
+        
+        <div class="game-container">
+            <h1 class="title">超级玛丽AI图像生成器</h1>
+            <!-- 添加音乐控制图标 -->
+            <button class="music-control" id="musicToggle">🎵</button>
+            <form id="workflowForm">
+                <div class="input-container">
+                    <input type="text" id="prompt" placeholder="输入你的想法...">
+                    <button type="button" id="clearButton" class="clear-button">消除</button>
+                </div>
+                <div class="button-container">
+                    <button type="submit" class="generate-button">生成</button>
+                </div>
+            </form>
+            <div id="result">
+                <img id="generatedImage" alt="生成的图像">
+                <div id="error"></div>
+                <div class="loading">
+                    <div class="mario-progress"></div>
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="game-decoration coin"></div>
+        <div class="game-decoration mushroom"></div>
+        <div class="game-decoration star"></div>
+        <div class="game-decoration flower"></div>
+    </div>
+
+    <div class="background-scene">
+        <div class="walking-mario"></div>
+        <div class="jumping-luigi"></div>
+        <div class="coin"></div>
+        <div class="coin"></div>
+        <div class="coin"></div>
+        <div class="coin"></div>
+        <div class="coin"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:8188';
+        const backgroundMusic = document.getElementById('backgroundMusic');
+        const musicToggle = document.getElementById('musicToggle');
+        let isMusicEnabled = false; // 默认关闭音乐
+        let isGenerating = false;
+
+        const cloudWords = [
+            { cn: '猫咪', en: 'Cat' },
+            { cn: '狗狗', en: 'Dog' },
+            { cn: '兔子', en: 'Rabbit' },
+            { cn: '大象', en: 'Elephant' },
+            { cn: '长颈鹿', en: 'Giraffe' },
+            { cn: '老虎', en: 'Tiger' },
+            { cn: '狮子', en: 'Lion' },
+            { cn: '熊猫', en: 'Panda' },
+            { cn: '鹦鹉', en: 'Parrot' },
+            { cn: '蝴蝶', en: 'Butterfly' },
+            { cn: '玫瑰', en: 'Rose' },
+            { cn: '向日葵', en: 'Sunflower' },
+            { cn: '樱花', en: 'Cherry Blossom' },
+            { cn: '仙人掌', en: 'Cactus' },
+            { cn: '橡树', en: 'Oak Tree' },
+            { cn: '松树', en: 'Pine Tree' },
+            { cn: '竹子', en: 'Bamboo' },
+            { cn: '蒲公英', en: 'Dandelion' },
+            { cn: '薰衣草', en: 'Lavender' },
+            { cn: '荷花', en: 'Lotus' },
+            { cn: '蘑菇', en: 'Mushroom' },
+            { cn: '蕨类', en: 'Fern' },
+            { cn: '苹果树', en: 'Apple Tree' },
+            { cn: '柳树', en: 'Willow Tree' },
+            { cn: '枫树', en: 'Maple Tree' },
+            { cn: '棕榈树', en: 'Palm Tree' },
+            { cn: '蝴蝶兰', en: 'Orchid' },
+            { cn: '郁金香', en: 'Tulip' },
+            { cn: '百合花', en: 'Lily' },
+            { cn: '梅花', en: 'Plum Blossom' }
+        ];
+
+        function addToPrompt(text) {
+            const promptInput = document.getElementById('prompt');
+            if (promptInput.value) {
+                promptInput.value += ', ' + text;
+            } else {
+                promptInput.value = text;
+            }
+        }
+
+        function createClouds() {
+            const container = document.getElementById('cloudContainer');
+            container.innerHTML = '';
+            const cloudCount = 30;
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+
+            for (let i = 0; i < cloudCount; i++) {
+                const cloudIndex = Math.floor(Math.random() * cloudWords.length);
+                const cloud = document.createElement('div');
+                cloud.className = 'cloud';
+                cloud.textContent = cloudWords[cloudIndex].cn;
+                
+                // 随机位置，确保云朵分布在整个屏幕上
+                cloud.style.top = `${Math.random() * viewportHeight}px`;
+                cloud.style.left = `${Math.random() * viewportWidth}px`;
+                
+                // 随机大小和动画持续时间
+                const scale = 0.5 + Math.random() * 0.5;
+                cloud.style.transform = `scale(${scale})`;
+                cloud.style.animationDuration = `${60 + Math.random() * 60}s`;
+                
+                cloud.onclick = (e) => {
+                    addToPrompt(cloudWords[cloudIndex].en);
+                    e.target.classList.add('clicked');
+                    setTimeout(() => {
+                        e.target.remove();
+                    }, 500);
+                };
+                container.appendChild(cloud);
+            }
+        }
+
+        // 页面加载完成后立即创建云朵
+        document.addEventListener('DOMContentLoaded', () => {
+            createClouds();
+            updateMusicState();
+
+            // 添加清除按钮的功能
+            const clearButton = document.getElementById('clearButton');
+            const promptInput = document.getElementById('prompt');
+
+            clearButton.addEventListener('click', () => {
+                promptInput.value = '';
+                promptInput.focus();
+            });
+        });
+
+        // 每隔一段时间重新生成云朵，保持屏幕上始终有云
+        setInterval(createClouds, 30000); // 每30秒重新生成一次
+
+        function toggleMusic() {
+            isMusicEnabled = !isMusicEnabled;
+            updateMusicState();
+        }
+
+        function updateMusicState() {
+            if (isMusicEnabled && !isGenerating) {
+                backgroundMusic.play();
+                musicToggle.textContent = '🎵';
+            } else {
+                backgroundMusic.pause();
+                musicToggle.textContent = '🔇';
+            }
+        }
+
+        musicToggle.addEventListener('click', toggleMusic);
+
+        async function fetchWithTimeout(url, options, timeout = 10000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal  
+            });
+            clearTimeout(id);
+            return response;
+        }
+
+        async function submitForm(event) {
+            event.preventDefault();
+            const prompt = document.getElementById('prompt').value;
+            if (!prompt) {
+                alert('请输入你的想法');
+                return;
+            }
+
+            isGenerating = true;
+            updateMusicState();
+
+            document.getElementById('error').textContent = '';
+            document.getElementById('generatedImage').style.display = 'none';
+            document.querySelector('.loading').style.display = 'block';
+
+            const progressBar = document.querySelector('.progress');
+            const marioProgress = document.querySelector('.mario-progress');
+            progressBar.style.width = '0%';
+            marioProgress.style.right = '100%';
+
+            const workflow = {
+                "3": {
+                    "inputs": {
+                        "seed": Math.floor(Math.random() * 1000000000),
+                        "steps": 35,
+                        "cfg": 8,
+                        "sampler_name": "euler",
+                        "scheduler": "normal",
+                        "denoise": 1,
+                        "model": ["10", 0],
+                        "positive": ["6", 0],
+                        "negative": ["7", 0],
+                        "latent_image": ["5", 0]
+                    },
+                    "class_type": "KSampler"
+                },
+                "4": {
+                    "inputs": {
+                        "ckpt_name": "魔杰作首发 _ 插画手绘模型 _ SDXL_MOJZ·illustrati.safetensors"
+                    },
+                    "class_type": "CheckpointLoaderSimple"
+                },
+                "5": {
+                    "inputs": {
+                        "width": 512,
+                        "height": 768,
+                        "batch_size": 1
+                    },
+                    "class_type": "EmptyLatentImage"
+                },
+                "6": {
+                    "inputs": {
+                        "text": prompt,
+                        "clip": ["10", 1]
+                    },
+                    "class_type": "CLIPTextEncode"
+                },
+                "7": {
+                    "inputs": {
+                        "text": "photograph,deformed,glitch,noisy,realistic,stock photo,",
+                        "clip": ["10", 1]
+                    },
+                    "class_type": "CLIPTextEncode"
+                },
+                "8": {
+                    "inputs": {
+                        "samples": ["3", 0],
+                        "vae": ["4", 2]
+                    },
+                    "class_type": "VAEDecode"
+                },
+                "9": {
+                    "inputs": {
+                        "filename_prefix": "ComfyUI",
+                        "images": ["8", 0]
+                    },
+                    "class_type": "SaveImage"
+                },
+                "10": {
+                    "inputs": {
+                        "lora_name": "Muertu XL丨简笔线条矢量图简约简单场景人物插画_v1.0.safetensors",
+                        "strength_model": 1,
+                        "strength_clip": 1,
+                        "model": ["4", 0],
+                        "clip": ["4", 1]
+                    },
+                    "class_type": "LoraLoader"
+                }
+            };
+
+            try {
+                const queueResponse = await fetchWithTimeout(`${API_BASE_URL}/prompt`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ prompt: workflow }),
+                });
+
+                if (!queueResponse.ok) {
+                    throw new Error(`提交任务失败: ${queueResponse.status} ${queueResponse.statusText}`);
+                }
+
+                const queueData = await queueResponse.json();
+                const promptId = queueData.prompt_id;
+
+                let retries = 0;
+                while (retries < 30) {
+                    const historyResponse = await fetchWithTimeout(`${API_BASE_URL}/history/${promptId}`);
+                    if (!historyResponse.ok) {
+                        throw new Error(`获取历史记录失败: ${historyResponse.status} ${historyResponse.statusText}`);
+                    }
+                    const historyData = await historyResponse.json();
+
+                    const progress = (retries + 1) * 3.33;
+                    progressBar.style.width = `${progress}%`;
+                    marioProgress.style.left = `${progress}%`;
+
+                    if (historyData[promptId] && historyData[promptId].outputs && historyData[promptId].outputs["9"]) {
+                        const imageData = historyData[promptId].outputs["9"].images[0];
+                        const imageUrl = `${API_BASE_URL}/view?filename=${imageData.filename}&subfolder=${imageData.subfolder}&type=${imageData.type}`;
+                        
+                        const generatedImage = document.getElementById('generatedImage');
+                        generatedImage.src = imageUrl;
+                        generatedImage.style.display = 'block';
+                        document.querySelector('.loading').style.display = 'none';
+
+                        // 添加光效动画
+                        setTimeout(() => {
+                            generatedImage.classList.add('glow');
+                        }, 100);
+
+                        break;
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    retries++;
+                }
+
+                if (retries >= 30) {
+                    throw new Error('生成图像超时，请稍后重试');
+                }
+
+                isGenerating = false;
+                if (isMusicEnabled) {
+                    backgroundMusic.play(); // 生成完成后播放提示音乐
+                }
+            } catch (error) {
+                console.error('错误:', error);
+                document.getElementById('error').textContent = `错误: ${error.message}`;
+                document.querySelector('.loading').style.display = 'none';
+                isGenerating = false;
+                updateMusicState();
+            }
+        }
+
+        document.getElementById('workflowForm').addEventListener('submit', submitForm);
+    </script>
+</body>
+</html>
